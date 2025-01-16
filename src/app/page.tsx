@@ -11,12 +11,13 @@ const WalletConnect = () => {
   const [selectedNetwork, setSelectedNetwork] = useState('');
   const [message, setMessage] = useState('');
   const [signature, setSignature] = useState('');
-  // 检查是否安装了 MetaMask
+
   const checkIfWalletIsInstalled = () => {
-    if (typeof window.ethereum === 'undefined') {
-      setError('请安装 MetaMask 钱包');
-      return false;
-    }
+    //@ts-ignore
+    // if (typeof window.ethereum === 'undefined') {
+    //   setError('please install metamask');
+    //   return false;
+    // }
     return true;
   };
 
@@ -62,6 +63,7 @@ const WalletConnect = () => {
 
       // 先尝试切换到该网络
       try {
+         //@ts-ignore
         await window.ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: chainIdHex }],
@@ -70,6 +72,7 @@ const WalletConnect = () => {
       } catch (switchError: any) {
         // 如果网络不存在（错误代码 4902），则添加网络
         if (switchError.code === 4902) {
+          //@ts-ignore
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [{
@@ -95,11 +98,13 @@ const WalletConnect = () => {
     try {
       if (!checkIfWalletIsInstalled()) return;
 
-      // 请求用户连接钱包
+      
+       //@ts-ignore
       const accounts = await window.ethereum.request({
         method: 'eth_requestAccounts'
       });
 
+       //@ts-ignore
       const provider = new ethers.BrowserProvider(window.ethereum);
       const network = await provider.getNetwork();
       const balance = await provider.getBalance(accounts[0]);
@@ -117,9 +122,10 @@ const WalletConnect = () => {
   // 监听账户变化
   const listenToAccountChanges = () => {
     if (!checkIfWalletIsInstalled()) return;
-
+    //@ts-ignore
     window.ethereum.on('accountsChanged', async (accounts) => {
       if (accounts.length > 0) {
+        //@ts-ignore
         const provider = new ethers.BrowserProvider(window.ethereum);
         const balance = await provider.getBalance(accounts[0]);
         setAccount(accounts[0]);
@@ -135,7 +141,7 @@ const WalletConnect = () => {
   // listen to chain changes
   const listenToChainChanges = () => {
     if (!checkIfWalletIsInstalled()) return;
-
+    //@ts-ignore
     window.ethereum.on('chainChanged', (chainId: string) => {
       setChainId(parseInt(chainId).toString());
       // 建议在链变化时刷新页面
@@ -146,6 +152,7 @@ const WalletConnect = () => {
   // switch network
   const switchNetwork = async (chainId: string) => {
     try {
+      //@ts-ignore
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
         params: [{ chainId: ethers.toQuantity(chainId) }],
@@ -168,6 +175,7 @@ const WalletConnect = () => {
   // send transaction
   const sendTransaction = async (to: string, value: string) => {
     try {
+      //@ts-ignore
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
@@ -194,7 +202,9 @@ const WalletConnect = () => {
   }, []);
 
   const getSigner = async () => {
+    //@ts-ignore
     if (window.ethereum) {
+      //@ts-ignore
       const provider = new ethers.BrowserProvider(window.ethereum);
       return provider.getSigner();
     }
