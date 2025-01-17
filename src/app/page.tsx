@@ -11,6 +11,8 @@ const WalletConnect = () => {
   const [selectedNetwork, setSelectedNetwork] = useState('');
   const [message, setMessage] = useState('');
   const [signature, setSignature] = useState('');
+  const [providers, setProviders] = useState({} as any);
+  const [flowWalletProvider, setFlowWalletProvider] = useState(null)
 
   const checkIfWalletIsInstalled = () => {
     //@ts-ignore
@@ -21,6 +23,24 @@ const WalletConnect = () => {
     return true;
   };
 
+  const setupEventListeners = () => {
+    // 监听钱包公告事件
+    window.addEventListener(
+      'eip6963:announceProvider',
+      ((event: CustomEvent) => {
+        const { info, provider } = event.detail;
+        console.log('Wallet announced:', info.name);
+        providers[info.rdns] = { info, provider };
+        setProviders(providers)
+        setFlowWalletProvider(provider)
+
+      }) as EventListener
+    );
+  }
+
+  useEffect(() => {
+    setupEventListeners()
+  }, [])
 
 
   const CUSTOM_NETWORKS: any = {
@@ -51,61 +71,18 @@ const WalletConnect = () => {
   };
 
 
-  async function addCustomNetwork(networkKey: string) {
-    try {
-      const network = CUSTOM_NETWORKS[networkKey];
-      if (!network) {
-        throw new Error('未找到网络配置');
-      }
-
-      // format chain id
-      const chainIdHex = `0x${network.chainId.toString(16)}`;
-
-      // try change network
-      try {
-         //@ts-ignore
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: chainIdHex }],
-        });
-        return true;
-      } catch (switchError: any) {
-
-        if (switchError.code === 4902) {
-          //@ts-ignore
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: chainIdHex,
-              chainName: network.chainName,
-              nativeCurrency: network.nativeCurrency,
-              rpcUrls: network.rpcUrls,
-              blockExplorerUrls: network.blockExplorerUrls
-            }]
-          });
-          return true;
-        }
-        throw switchError;
-      }
-    } catch (error) {
-      console.error('添加网络失败：', error);
-      throw error;
-    }
-  }
 
   // connect wallet
   const connectWallet = async () => {
     try {
       if (!checkIfWalletIsInstalled()) return;
-
-      
-       //@ts-ignore
-      const accounts = await window.ethereum.request({
+      //@ts-ignore
+      const accounts = await flowWalletProvider.request({
         method: 'eth_requestAccounts'
       });
 
-       //@ts-ignore
-      const provider = new ethers.BrowserProvider(window.ethereum);
+      //@ts-ignore
+      const provider = new ethers.BrowserProvider(flowWalletProvider);
       const network = await provider.getNetwork();
       const balance = await provider.getBalance(accounts[0]);
 
@@ -119,58 +96,8 @@ const WalletConnect = () => {
     }
   };
 
-  // listen account change
-  const listenToAccountChanges = () => {
-    if (!checkIfWalletIsInstalled()) return;
-    //@ts-ignore
-    window.ethereum.on('accountsChanged', async (accounts) => {
-      if (accounts.length > 0) {
-        //@ts-ignore
-        const provider = new ethers.BrowserProvider(window.ethereum);
-        const balance = await provider.getBalance(accounts[0]);
-        setAccount(accounts[0]);
-        setBalance(ethers.formatEther(balance));
-      } else {
-        // reset state
-        setAccount('');
-        setBalance('');
-      }
-    });
-  };
 
-  // listen to chain changes
-  const listenToChainChanges = () => {
-    if (!checkIfWalletIsInstalled()) return;
-    //@ts-ignore
-    window.ethereum.on('chainChanged', (chainId: string) => {
-      setChainId(parseInt(chainId).toString());
 
-      window.location.reload();
-    });
-  };
-
-  // switch network
-  const switchNetwork = async (chainId: string) => {
-    try {
-      //@ts-ignore
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: ethers.toQuantity(chainId) }],
-      });
-    } catch (err: any) {
-      setError('Switch network failed:' + err.message);
-    }
-  };
-
-  const handleNetworkChange = async (networkKey: string) => {
-    try {
-      setError('');
-      await addCustomNetwork(networkKey);
-      setSelectedNetwork(networkKey);
-    } catch (err: any) {
-      setError(`Switch network failed: ${err.message}`);
-    }
-  };
 
   // send transaction
   const sendTransaction = async (to: string, value: string) => {
@@ -196,10 +123,6 @@ const WalletConnect = () => {
     }
   };
 
-  useEffect(() => {
-    listenToAccountChanges();
-    listenToChainChanges();
-  }, []);
 
   const getSigner = async () => {
     //@ts-ignore
@@ -244,11 +167,7 @@ const WalletConnect = () => {
           <p>Balance：{balance} FLOW</p>
           <p>Chain ID: {chainId}</p>
 
-          <div>
-            <button onClick={() => handleNetworkChange('747')}>Change to Flow evm mainnet</button>
-            <br></br>
-            <button onClick={() => handleNetworkChange('545')}>Change to Flow evm testnet</button>
-          </div>
+
           <br />
           <div>
             <input type="text" placeholder="Enter the recipient address" onChange={e => setToAddress(e.target.value)} />
