@@ -58,10 +58,10 @@ const WalletConnect = () => {
         throw new Error('未找到网络配置');
       }
 
-      // 格式化 chainId 为十六进制
+      // format chain id
       const chainIdHex = `0x${network.chainId.toString(16)}`;
 
-      // 先尝试切换到该网络
+      // try change network
       try {
          //@ts-ignore
         await window.ethereum.request({
@@ -70,7 +70,7 @@ const WalletConnect = () => {
         });
         return true;
       } catch (switchError: any) {
-        // 如果网络不存在（错误代码 4902），则添加网络
+
         if (switchError.code === 4902) {
           //@ts-ignore
           await window.ethereum.request({
@@ -93,7 +93,7 @@ const WalletConnect = () => {
     }
   }
 
-  // 连接钱包
+  // connect wallet
   const connectWallet = async () => {
     try {
       if (!checkIfWalletIsInstalled()) return;
@@ -119,7 +119,7 @@ const WalletConnect = () => {
     }
   };
 
-  // 监听账户变化
+  // listen account change
   const listenToAccountChanges = () => {
     if (!checkIfWalletIsInstalled()) return;
     //@ts-ignore
@@ -131,7 +131,7 @@ const WalletConnect = () => {
         setAccount(accounts[0]);
         setBalance(ethers.formatEther(balance));
       } else {
-        // 用户断开了所有账户
+        // reset state
         setAccount('');
         setBalance('');
       }
@@ -144,7 +144,7 @@ const WalletConnect = () => {
     //@ts-ignore
     window.ethereum.on('chainChanged', (chainId: string) => {
       setChainId(parseInt(chainId).toString());
-      // 建议在链变化时刷新页面
+
       window.location.reload();
     });
   };
@@ -187,7 +187,7 @@ const WalletConnect = () => {
       const transaction = await signer.sendTransaction(tx);
       await transaction.wait();
 
-      // 更新余额
+      // update balance
       const newBalance = await provider.getBalance(account);
       setBalance(ethers.formatEther(newBalance));
 
@@ -216,7 +216,7 @@ const WalletConnect = () => {
     try {
       const signer = await getSigner();
 
-      // 签名消息
+      // sign message
       const signature = await signer.signMessage(message);
       setSignature(signature);
       return {
