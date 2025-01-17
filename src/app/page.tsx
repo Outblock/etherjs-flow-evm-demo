@@ -32,7 +32,9 @@ const WalletConnect = () => {
         console.log('Wallet announced:', info.name);
         providers[info.rdns] = { info, provider };
         setProviders(providers)
-        setFlowWalletProvider(provider)
+        if (info.rdns == 'com.flowfoundation.wallet') {
+          setFlowWalletProvider(provider)
+        }
 
       }) as EventListener
     );
